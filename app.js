@@ -25,7 +25,7 @@ app.use("/feed", feedRoutes);
 
 mongoose
   .connect(
-    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.02xhr.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.02xhr.mongodb.net/messages?retryWrites=true&w=majority`
   )
   .then(() => {
     app.listen(8080);
