@@ -9,7 +9,9 @@ const { v4: uuidv4 } = require("uuid");
 const { graphqlHTTP } = require("express-graphql");
 
 const graphqlSchema = require("./graphql/schema");
-const graphqlResolver = require("./graphql/resolver");
+const graphqlResolver = require("./graphql/resolvers");
+const auth = require("./middleware/auth");
+const { clearImage } = require("./util/file");
 
 const app = express();
 
@@ -48,7 +50,28 @@ app.use((req, res, next) => {
     "OPTIONS, GET, POST, PUT, PATCH, DELETE"
   );
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
   next();
+});
+
+app.use(auth);
+
+app.put("/post-image", (req, res, next) => {
+  if (!req.isAuth) {
+    throw new Error("Not authenticated");
+  }
+  if (!req.file) {
+    return res.status(200).json({ message: "no file provided" });
+  }
+  if (req.body.oldPath) {
+    clearImage(req.body.oldPath);
+  }
+  return res.status(201).json({
+    message: "File Stored.",
+    filePath: req.file.path.replace(/\\/g, "/"),
+  });
 });
 
 app.use(
@@ -56,6 +79,16 @@ app.use(
   graphqlHTTP({
     schema: graphqlSchema,
     rootValue: graphqlResolver,
+    graphiql: true,
+    customFormatErrorFn(err) {
+      if (!err.originalError) {
+        return err;
+      }
+      const data = err.originalError.data;
+      const message = err.message || "Error message error";
+      const code = err.originalError.code || 500;
+      return { message: message, status: code, data: data };
+    },
   })
 );
 
